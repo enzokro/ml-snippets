@@ -1,6 +1,18 @@
 import numpy as np
 from typing import Callable
 
+def relu(x: np.ndarray, derivative=False) -> np.ndarray:
+    """Rectified Linear Unit (ReLU) activation function."""
+    if derivative:
+        return np.where(x > 0, 1, 0)
+    return np.maximum(0, x)
+
+def sigmoid(x: np.ndarray, derivative=False) -> np.ndarray:
+    """Sigmoid activation function."""
+    if derivative:
+        return sigmoid(x) * (1 - sigmoid(x))
+    return 1 / (1 + np.exp(-x))
+
 class DenseLayer:
     """A fully connected dense layer in a neural network."""
     
@@ -34,26 +46,17 @@ class DenseLayer:
         
         return grad_input
 
-def relu(x: np.ndarray, derivative=False) -> np.ndarray:
-    """Rectified Linear Unit (ReLU) activation function."""
-    if derivative:
-        return np.where(x > 0, 1, 0)
-    return np.maximum(0, x)
-
-def sigmoid(x: np.ndarray, derivative=False) -> np.ndarray:
-    """Sigmoid activation function."""
-    if derivative:
-        return sigmoid(x) * (1 - sigmoid(x))
-    return 1 / (1 + np.exp(-x))
-
 class NeuralNetwork:
     """A simple feedforward neural network."""
     
-    def __init__(self, layer_sizes: list, activation: Callable = relu):
+    def __init__(self, layer_sizes: list, activation: Callable = None, output_activation: Callable = None):
         """Initialize the neural network with the specified layer sizes."""
         self.layers = []
         for i in range(len(layer_sizes) - 1):
-            self.layers.append(DenseLayer(layer_sizes[i], layer_sizes[i+1], activation))
+            if i == len(layer_sizes) - 2:
+                self.layers.append(DenseLayer(layer_sizes[i], layer_sizes[i+1], output_activation))
+            else:
+                self.layers.append(DenseLayer(layer_sizes[i], layer_sizes[i+1], activation))
     
     def forward(self, inputs: np.ndarray) -> np.ndarray:
         """Perform forward propagation through the neural network."""
@@ -68,9 +71,10 @@ class NeuralNetwork:
     
     def train(self, inputs: np.ndarray, targets: np.ndarray, epochs: int, learning_rate: float):
         """Train the neural network using the provided inputs and targets."""
-        for _ in range(epochs):
+        for epoch in range(epochs):
             outputs = self.forward(inputs)
             loss = np.mean((outputs - targets) ** 2)
             grad_output = 2 * (outputs - targets) / len(inputs)
             self.backward(grad_output, learning_rate)
-            print(f"Epoch {_+1}/{epochs}, Loss: {loss:.4f}")
+            if (epoch + 1) % 100 == 0:
+                print(f"Epoch {epoch+1}/{epochs}, Loss: {loss:.4f}")
